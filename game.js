@@ -28,7 +28,13 @@
     acumDelta = 0;
 
     //////////////////////////////--FUNCIONES--///////////////////////////////////////
-
+    function resize(){
+        var w = window.innerWidth / canvas.width;
+        var h = window.innerHeight / canvas.height;
+        var scale = Math.min(h, w);
+        canvas.style.width = (canvas.width * scale) + 'px';
+        canvas.style.height = (canvas.height * scale) + 'px';
+    }
     function Rectangle(x, y, width, height) {//  esto se lo considera una clase.
         this.x = (x === undefined) ? 0 : x;/*En esta línea, asignamos a this.x uno de dos valores. Se comprueba mediante (x == null) ? si su valor es nulo o indefinido. Si es así, se
         asigna el valor antes de los dos puntos (0), y en caso contrario, se asigna el valor posterior a los dos puntos (x). */
@@ -320,6 +326,7 @@
         // Start game
         run();//hace que se repita la funcion de pintar el lienzo
         repaint();
+        resize();
     }
     setTimeout( function () {
         window.requestAnimationFrame(run)
@@ -328,7 +335,9 @@
 /////////////////////////////////--ESCUCHAS--///////////////////////////////////////
 
     window.addEventListener('load', init, false);
+    window.addEventListener('resize', resize, false);
     document.addEventListener('keydown', function (evt) {//almacena la tecla presionada
     lastPress = evt.which;
     }, false);
 }(window));
+    
