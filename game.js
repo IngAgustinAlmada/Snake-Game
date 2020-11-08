@@ -29,12 +29,13 @@
 
     //////////////////////////////--FUNCIONES--///////////////////////////////////////
 
-    function Rectangle(x, y, width, height) {
-        this.x = (x === undefined) ? 0 : x;
+    function Rectangle(x, y, width, height) {//  esto se lo considera una clase.
+        this.x = (x === undefined) ? 0 : x;/*En esta línea, asignamos a this.x uno de dos valores. Se comprueba mediante (x == null) ? si su valor es nulo o indefinido. Si es así, se
+        asigna el valor antes de los dos puntos (0), y en caso contrario, se asigna el valor posterior a los dos puntos (x). */
         this.y = (y === undefined) ? 0 : y;
         this.width = (width === undefined) ? 0 : width;
-        this.height = (height === undefined) ? this.width : height;
-        /*this.intersects = function (rect) {
+        this.height = (height === undefined) ? this.width : height; /* De esta forma, si envío solo tres valores al rectángulo en lugar de 4, me creará un cuadrado perfecto cuyo ancho y alto será el tercer y último valor asignado: */
+        this.intersects = function (rect) {
             if (rect === undefined) {
                 window.console.warn('Missing parameters on function intersects');
             } else {
@@ -44,7 +45,7 @@
                 this.y + this.height > rect.y);
             }
         };
-        this.fill = function (ctx) {
+        this.fill = function (ctx) {//, es que este se dibuje automáticamente en nuestro lienzo.
         if (ctx === undefined) {
             window.console.warn('Missing parameters on function fill');
         } else {
@@ -61,9 +62,9 @@
                     ctx.strokeRect(this.x, this.y, this.width, this.height);
                 }
             }
-            };*/
+            };
     }
-    Rectangle.prototype = {
+    /* Rectangle.prototype = {
         constructor: Rectangle,
         intersects: function (rect) {
             if (rect === undefined) {
@@ -93,7 +94,7 @@
                 }
             }
         }
-    };
+    }; */
     /*Rectangle.prototype.intersects = function (rect) {
         if (rect === undefined) {
             window.console.warn('Missing parameters on function intersects');
@@ -268,13 +269,13 @@
             lastPress = undefined;
         }
     }
-    // function repaint() {
-    //     window.requestAnimationFrame(repaint);
-    //     //para pintar en el lienzo
-    // }
+    function repaint() {
+        window.requestAnimationFrame(repaint);
+        paint(ctx);//para pintar en el lienzo
+    }
     function run() {
-        window.requestAnimationFrame(run); // lo hace corer a 60fps
-        //setTimeout(run, 17);//llama a la funcon run cada 50 miliseg. = 60 fps
+        //window.requestAnimationFrame(run); // lo hace corer a 60fps
+        setTimeout(run, 60);//llama a la funcon run cada 60 miliseg. = 35 fps
         var now = Date.now(),
         deltaTime = (now - lastUpdate) / 1000;
         if (deltaTime > 1) {
@@ -289,7 +290,7 @@
             acumDelta -= 1;
         }
         act();
-        paint(ctx);//llama a las acciones sobre el juego
+        //paint(ctx);//llama a las acciones sobre el juego
     }
     function init() {
         // Get canvas and context
@@ -318,8 +319,11 @@
         wall.push(new Rectangle(900, 400, 10, 10));
         // Start game
         run();//hace que se repita la funcion de pintar el lienzo
-        //repaint();
+        repaint();
     }
+    setTimeout( function () {
+        window.requestAnimationFrame(run)
+        }, 75);
 
 /////////////////////////////////--ESCUCHAS--///////////////////////////////////////
 
