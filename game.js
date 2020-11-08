@@ -8,16 +8,21 @@
     KEY_UP = 38,
     KEY_RIGHT = 39,
     KEY_DOWN = 40,
-    canvas = undefined,
-    ctx = undefined,
-    lastPress = undefined,
+    canvas = null,
+    ctx = null,
+    buffer = null,
+    bufferCtx = null,
+    bufferScale = 1,
+    bufferOffsetX = 0,
+    bufferOffsetY = 0,
+    lastPress = null,
     pause = true,
     gameover = true,
     dir = 0,
     score = 0,
     wall = [],
     body = [],
-    food = undefined,
+    food = null,
     iBody = new Image(),
     iFood = new Image(),
     aEat = new Audio(),
@@ -25,52 +30,48 @@
     lastUpdate = 0,
     FPS = 0,
     frames = 0,
-    acumDelta = 0;
+    acumDelta = 0,
+    buffer = null,
+    bufferCtx = null;
 
     //////////////////////////////--FUNCIONES--///////////////////////////////////////
-    function resize(){
-        var w = window.innerWidth / canvas.width;
-        var h = window.innerHeight / canvas.height;
-        var scale = Math.min(h, w);
-        canvas.style.width = (canvas.width * scale) + 'px';
-        canvas.style.height = (canvas.height * scale) + 'px';
-    }
-    function Rectangle(x, y, width, height) {//  esto se lo considera una clase.
+
+    function Rectangle (x, y, width, height) {//  esto se lo considera una clase.
         this.x = (x === undefined) ? 0 : x;/*En esta línea, asignamos a this.x uno de dos valores. Se comprueba mediante (x == null) ? si su valor es nulo o indefinido. Si es así, se
         asigna el valor antes de los dos puntos (0), y en caso contrario, se asigna el valor posterior a los dos puntos (x). */
         this.y = (y === undefined) ? 0 : y;
         this.width = (width === undefined) ? 0 : width;
         this.height = (height === undefined) ? this.width : height; /* De esta forma, si envío solo tres valores al rectángulo en lugar de 4, me creará un cuadrado perfecto cuyo ancho y alto será el tercer y último valor asignado: */
-        this.intersects = function (rect) {
-            if (rect === undefined) {
-                window.console.warn('Missing parameters on function intersects');
-            } else {
-                return (this.x < rect.x + rect.width &&
-                this.x + this.width > rect.x &&
-                this.y < rect.y + rect.height &&
-                this.y + this.height > rect.y);
-            }
-        };
-        this.fill = function (ctx) {//, es que este se dibuje automáticamente en nuestro lienzo.
-        if (ctx === undefined) {
-            window.console.warn('Missing parameters on function fill');
-        } else {
-            ctx.fillRect(this.x, this.y, this.width, this.height);
-        }
-        };
-        this.drawImage = function (ctx, img) {
-            if (img === undefined) {
-                window.console.warn('Missing parameters on function drawImage');
-            } else {
-                if (img.width) {
-                    ctx.drawImage(img, this.x, this.y);
-                } else {
-                    ctx.strokeRect(this.x, this.y, this.width, this.height);
-                }
-            }
-            };
+        // this.intersects = function (rect) {
+        //     if (rect === undefined) {
+        //         window.console.warn('Missing parameters on function intersects');
+        //     } else {
+        //         return (this.x < rect.x + rect.width &&
+        //         this.x + this.width > rect.x &&
+        //         this.y < rect.y + rect.height &&
+        //         this.y + this.height > rect.y);
+        //     }
+        // };
+        // this.fill = function (ctx) {//, es que este se dibuje automáticamente en nuestro lienzo.
+        // if (ctx === undefined) {
+        //     window.console.warn('Missing parameters on function fill');
+        // } else {
+        //     ctx.fillRect(this.x, this.y, this.width, this.height);
+        // }
+        // };
+        // this.drawImage = function (ctx, img) {
+        //     if (img === undefined) {
+        //         window.console.warn('Missing parameters on function drawImage');
+        //     } else {
+        //         if (img.width) {
+        //             ctx.drawImage(img, this.x, this.y);
+        //         } else {
+        //             ctx.strokeRect(this.x, this.y, this.width, this.height);
+        //         }
+        //     }
+        //     };
     }
-    /* Rectangle.prototype = {
+    Rectangle.prototype = {
         constructor: Rectangle,
         intersects: function (rect) {
             if (rect === undefined) {
@@ -100,8 +101,8 @@
                 }
             }
         }
-    }; */
-    /*Rectangle.prototype.intersects = function (rect) {
+    };
+    Rectangle.prototype.intersects = function (rect) {
         if (rect === undefined) {
             window.console.warn('Missing parameters on function intersects');
         } else {
@@ -128,10 +129,17 @@
                 ctx.strokeRect(this.x, this.y, this.width, this.height);
             }
         }
-    };*/
+    };
     function random(max) {
         return ~~(Math.random() * max);
         //return Math.floor(Math.random() * max);
+    }
+    function resize(){
+        var w = window.innerWidth / canvas.width;
+        var h = window.innerHeight / canvas.height;
+        var scale = Math.min(h, w);
+        canvas.style.width = (canvas.width * scale) + 'px';
+        canvas.style.height = (canvas.height * scale) + 'px';
     }
     function reset() {
         score = 0;
@@ -260,7 +268,7 @@
                     aDie.play();
                 }
             }
-                // Food Intersects
+            // Food Intersects
             if (body[0].intersects(food)) {
                 body.push(new Rectangle(food.x, food.y, 10, 10));
                 score += 1;
@@ -277,8 +285,12 @@
     }
     function repaint() {
         window.requestAnimationFrame(repaint);
-        paint(ctx);//para pintar en el lienzo
-    }
+        ctx.imageSmoothingEnabled = false;
+        paint(bufferCtx);
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(buffer, 0, 0, canvas.width, canvas.height);
+        }
     function run() {
         //window.requestAnimationFrame(run); // lo hace corer a 60fps
         setTimeout(run, 60);//llama a la funcon run cada 60 miliseg. = 35 fps
@@ -323,6 +335,11 @@
         wall.push(new Rectangle(900, 100, 10, 10));
         wall.push(new Rectangle(900, 250, 10, 10));
         wall.push(new Rectangle(900, 400, 10, 10));
+        // Load buffer
+        buffer = document.createElement('canvas');
+        bufferCtx = buffer.getContext('2d');
+        buffer.width = 1200;
+        buffer.height = 600;
         // Start game
         run();//hace que se repita la funcion de pintar el lienzo
         repaint();
@@ -336,8 +353,10 @@
 
     window.addEventListener('load', init, false);
     window.addEventListener('resize', resize, false);
-    document.addEventListener('keydown', function (evt) {//almacena la tecla presionada
-    lastPress = evt.which;
-    }, false);
+    document.addEventListener('keydown', function (evt) {
+        if (evt.which >= 37 && evt.which <= 40) {
+            evt.preventDefault();
+        }
+        lastPress = evt.which;
+        }, false);
 }(window));
-    
