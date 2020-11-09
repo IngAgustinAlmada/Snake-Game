@@ -32,8 +32,11 @@
     bufferCtx = null,
     mainScene = null,
     gameScene = null,
+    highscoresScene = null,
     currentScene = 0,
-    scenes = [];
+    scenes = [],
+    highscores = [],
+    posHighscore = 2;
 
     //////////////////////////////--FUNCIONES--///////////////////////////////////////
 
@@ -149,6 +152,17 @@
         return ~~(Math.random() * max);
         //return Math.floor(Math.random() * max);
     }
+    function addHighscore(score) {
+        posHighscore = 0;
+        while (highscores[posHighscore] > score && posHighscore < highscores.length) {
+        posHighscore += 1;
+        }
+        highscores.splice(posHighscore, 0, score);
+        if (highscores.length > 2) {
+        highscores.length = 2;
+        }
+        localStorage.highscores = highscores.join(',');
+        }
     function repaint() {
         window.requestAnimationFrame(repaint);
         if (scenes.length) {
@@ -207,6 +221,10 @@
         wall.push(new Rectangle(900, 100, 10, 10));
         wall.push(new Rectangle(900, 250, 10, 10));
         wall.push(new Rectangle(900, 400, 10, 10));
+        // Load saved highscores
+        if (localStorage.highscores) {
+            highscores = localStorage.highscores.split(',');
+        }
         // Load buffer
         buffer = document.createElement('canvas');
         bufferCtx = buffer.getContext('2d');
@@ -232,7 +250,7 @@
     mainScene.act = function () {
         // Load next scene
         if (lastPress === KEY_ENTER) {
-        loadScene(gameScene);
+        loadScene(highscoresScene);
         lastPress = null;
         }
     };
@@ -288,7 +306,7 @@
         if (!pause) {
             // GameOver Reset
             if (gameover) {
-                loadScene(mainScene);
+                loadScene(highscoresScene);
             }
             // Move Body
             for (i = body.length - 1; i > 0; i -= 1) {
@@ -359,6 +377,7 @@
                     gameover = true;
                     pause = true;
                     aDie.play();
+                    addHighscore(score);
                 }
             }
         }
@@ -368,6 +387,35 @@
             lastPress = null;
         }
     };
+    // Highscore Scene
+    highscoresScene = new Scene();
+    highscoresScene.paint = function (ctx) {
+        var i = 0,
+        l = 0;
+        // Clean canvas
+        ctx.fillStyle = '#030';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // Draw title
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'center';
+        ctx.fillText('HIGH SCORES', canvas.width/2, 50);
+        // Draw high scores
+        ctx.textAlign = 'right';
+        for (i = 0, l = highscores.length; i < l; i += 1) {
+            if (i === posHighscore) {
+                ctx.fillText('*' + highscores[i], 180, 40 + i * 10);
+            } else {
+                ctx.fillText(highscores[i], 180, 40 + i * 10);
+            }
+        }
+    };
+highscoresScene.act = function () {
+// Load next scene
+if (lastPress === KEY_ENTER) {
+loadScene(gameScene);
+lastPress = null;
+}
+};
     // function resize(){
     //     var w = window.innerWidth / canvas.width;
     //     var h = window.innerHeight / canvas.height;
@@ -392,7 +440,7 @@
             return false;
         }
     }
-    // function paint(ctx) { // pinta el lienzo y el rectangulo
+    /* function paint(ctx) { // pinta el lienzo y el rectangulo
     //     var i = 0,
     //         l = 0;
     //     // Clean canvas
@@ -520,7 +568,8 @@
 
     // setTimeout( function () {
     //     window.requestAnimationFrame(run)
-    //     }, 75);
+    /     }, 75);
+    */
 
 /////////////////////////////////--ESCUCHAS--///////////////////////////////////////
 
