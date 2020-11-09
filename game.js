@@ -3,40 +3,44 @@
     'use strict';
 //////////////////////////////--VARIABLES--///////////////////////////////////////
 
-    var KEY_ENTER = 13,
-    KEY_LEFT = 37,
-    KEY_UP = 38,
-    KEY_RIGHT = 39,
-    KEY_DOWN = 40,
-    canvas = null,
-    ctx = null,
-    buffer = null,
-    bufferCtx = null,
-    lastPress = null,
-    pause = false,
-    gameover = false,
-    dir = 0,
-    score = 0,
-    wall = [],
-    body = [],
-    food = null,
-    iBody = new Image(),
-    iFood = new Image(),
-    aEat = new Audio(),
-    aDie = new Audio(),
-    lastUpdate = 0,
-    FPS = 0,
-    frames = 0,
-    acumDelta = 0,
-    buffer = null,
-    bufferCtx = null,
-    mainScene = null,
-    gameScene = null,
-    highscoresScene = null,
-    currentScene = 0,
-    scenes = [],
-    highscores = [],
-    posHighscore = 2;
+    var acumDelta = 0,
+        aDie = new Audio(),
+        aEat = new Audio(),
+        body = [],
+        buffer = null,
+        buffer = null,
+        bufferCtx = null,
+        bufferCtx = null,
+        canvas = null,
+        ctx = null,
+        currentScene = 0,
+        dir = 0,
+        food = null,
+        foodBonus = null,
+        FPS = 0,
+        frames = 0,
+        gameover = false,
+        gameScene = null,
+        highscores = [],//contiene los mayores puntajes
+        highscoresScene = null,
+        iBody = new Image(),
+        iFood = new Image(),
+        iFoodBonus = new Image(),
+        iHeadL = new Image(),
+        iHeadR = new Image(),
+        KEY_DOWN = 40,
+        KEY_ENTER = 13,
+        KEY_LEFT = 37,
+        KEY_RIGHT = 39,
+        KEY_UP = 38,
+        lastPress = null,
+        lastUpdate = 0,
+        mainScene = null,
+        pause = false,
+        posHighscore = 10,//contiene la posicion del nuevo mejor puntaje.
+        scenes = [],
+        score = 0,
+        wall = [];
 
     //////////////////////////////--FUNCIONES--///////////////////////////////////////
 
@@ -158,8 +162,8 @@
         posHighscore += 1;
         }
         highscores.splice(posHighscore, 0, score);
-        if (highscores.length > 2) {
-        highscores.length = 2;
+        if (highscores.length > 10) {
+        highscores.length = 10;
         }
         localStorage.highscores = highscores.join(',');
         }
@@ -201,26 +205,27 @@
         canvas = document.getElementById('canvas');//llama al canvas del html.
         ctx = canvas.getContext('2d');//obtiene el contexto 2d, sería el pincel para pintar
         // Load assets
-        iBody.src = 'body.png';
-        iFood.src = 'fruit.png';
+        iHeadR.src = './skins/headR.png';
+        iHeadL.src = './skins/headL.png';
+        iBody.src = './skins/body.png';
+        iFood.src = './skins/apple.png';
+        iFoodBonus.src = './skins/orange.png';
         if (canPlayOgg()) {
-            aEat.src='chomp.oga';
-            aDie.src = 'dies.oga';
+            aEat.src='./sounds/chomp.oga';
+            aDie.src = './sounds/dies.oga';
             } else {
-            aEat.src='chomp.m4a';
-            aDie.src ='dies.m4a';
+            aEat.src='./sounds/chomp.m4a';
+            aDie.src ='./sounds/dies.m4a';
             }
         // Create food
         food = new Rectangle(80, 80, 10, 10);
+        foodBonus = new Rectangle(100, 100, 10, 10);
         // Create walls
-        wall.push(new Rectangle(100, 100, 10, 10));
-        wall.push(new Rectangle(100, 250, 10, 10));
-        wall.push(new Rectangle(100, 400, 10, 10));
-        wall.push(new Rectangle(500, 100, 10, 10));
-        wall.push(new Rectangle(500, 400, 10, 10));
-        wall.push(new Rectangle(900, 100, 10, 10));
-        wall.push(new Rectangle(900, 250, 10, 10));
-        wall.push(new Rectangle(900, 400, 10, 10));
+        for(var i=0;i < 15;i++){
+            wall.push(new Rectangle(200 + i * 10, 300 - i * 10, 10, 10));
+            wall.push(new Rectangle(125 + i * 10, 225 - i * 10, 10, 10));
+        }
+
         // Load saved highscores
         if (localStorage.highscores) {
             highscores = localStorage.highscores.split(',');
@@ -243,15 +248,14 @@
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         // Draw title
         ctx.fillStyle = '#fff';
-        ctx.textAlign = 'center';
         ctx.fillText('SNAKE', canvas.width/2, canvas.height/2-50);
         ctx.fillText('Press Enter', canvas.width/2, canvas.height/2+20);
         };
     mainScene.act = function () {
         // Load next scene
         if (lastPress === KEY_ENTER) {
-        loadScene(highscoresScene);
-        lastPress = null;
+            loadScene(highscoresScene);
+            lastPress = null;
         }
     };
     // Game Scene
@@ -263,6 +267,8 @@
         body.push(new Rectangle(40, 40, 10, 10));
         food.x = random(canvas.width / 10 - 1) * 10;
         food.y = random(canvas.height / 10 - 1) * 10;
+        foodBonus.x = random(canvas.width / 10 - 1) * 10;
+        foodBonus.y = random(canvas.height / 10 - 1) * 10;
         gameover = false;
     };
     gameScene.paint = function (ctx) {
@@ -273,7 +279,14 @@
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         // Draw player
         ctx.strokeStyle = '#0f0';
-        for (i = 0, l = body.length; i < l; i += 1) {
+        if (lastPress === KEY_RIGHT || lastPress === KEY_UP || lastPress === KEY_DOWN || lastPress !== KEY_ENTER) {
+            body[0].drawImage(ctx, iHeadR);
+        }
+        if (lastPress === KEY_LEFT  || lastPress === KEY_UP || lastPress === KEY_DOWN) {
+             body[0].drawImage(ctx, iHeadL);
+        }
+        //body[0].drawImage(ctx, iHead);
+        for (i = 1, l = body.length; i < l; i += 1) {
             body[i].drawImage(ctx, iBody);
         }
         // Draw walls
@@ -282,17 +295,18 @@
             wall[i].fill(ctx);
         }
         // Draw food
-        ctx.strokeStyle = '#f00';
         food.drawImage(ctx, iFood);
+        // Draw Bonus
+        foodBonus.drawImage(ctx, iFoodBonus);
         // Draw score
-        ctx.fillText('Score: ' + score, 20, 10);
+        ctx.fillStyle = 'white';
+        ctx.fillText('Score: ' + score, 50, 10);
         // Draw FPS
-        ctx.fillText('FPS: ' + FPS, 20, 20);
+        ctx.fillText('FPS: ' + FPS, 50, 20);
         // Debug last key pressed
         //ctx.fillText('Last Press: '+ lastPress, 10, 30);
-        // Draw pause
+        // Draw pause / Game Over
         if (pause) {
-            ctx.textAlign = 'center';
         if (gameover) {
             ctx.fillText('GAME OVER', canvas.width/2, canvas.height/2);
         } else {
@@ -360,15 +374,28 @@
                 food.y = random(canvas.height / 10 - 1) * 10;
                 aEat.play();
             }
+             // FoodBonus Intersects
+             if (body[0].intersects(foodBonus)) {
+                score += 5;
+                foodBonus.x = random(canvas.width / 10 - 1) * 10;
+                foodBonus.y = random(canvas.height / 10 - 1) * 10;
+                aEat.play();
+            }
             // Wall Intersects
             for (i = 0, l = wall.length; i < l; i += 1) {
                 if (food.intersects(wall[i])) {
                     food.x = random(canvas.width / 10 - 1) * 10;
                     food.y = random(canvas.height / 10 - 1) * 10;
                 }
+                if (foodBonus.intersects(wall[i])) {
+                    foodBonus.x = random(canvas.width / 10 - 1) * 10;
+                    foodBonus.y = random(canvas.height / 10 - 1) * 10;
+                }
                 if (body[0].intersects(wall[i])) {
                     gameover = true;
                     pause = true;
+                    aDie.play();
+                    addHighscore(score);
                 }
             }
             // Body Intersects
@@ -379,6 +406,11 @@
                     aDie.play();
                     addHighscore(score);
                 }
+            }
+            // Food and FoodBonus Intersects
+            if (food.intersects(foodBonus)) {
+                food.x = random(canvas.width / 10 - 1) * 10;
+                food.y = random(canvas.height / 10 - 1) * 10;
             }
         }
         // Pause/Unpause
@@ -402,36 +434,16 @@
         // Draw high scores
         ctx.textAlign = 'right';
         for (i = 0, l = highscores.length; i < l; i += 1) {
-            if (i === posHighscore) {
-                ctx.fillText('*' + highscores[i], 180, 40 + i * 10);
-            } else {
-                ctx.fillText(highscores[i], 180, 40 + i * 10);
-            }
+            ctx.fillText(highscores[i], canvas.width/2, 100 + i * 10);
         }
     };
-highscoresScene.act = function () {
-// Load next scene
-if (lastPress === KEY_ENTER) {
-loadScene(gameScene);
-lastPress = null;
-}
-};
-    // function resize(){
-    //     var w = window.innerWidth / canvas.width;
-    //     var h = window.innerHeight / canvas.height;
-    //     var scale = Math.min(h, w);
-    //     canvas.style.width = (canvas.width * scale) + 'px';
-    //     canvas.style.height = (canvas.height * scale) + 'px';
-    // }
-    // function reset() {
-    //     score = 0;
-    //     dir = 1;
-    //     body.length = 0;
-    //     body.push(new Rectangle(40, 40, 10, 10));
-    //     food.x = random(canvas.width / 10 - 1) * 10;
-    //     food.y = random(canvas.height / 10 - 1) * 10;
-    //     gameover = false;
-    // }
+    highscoresScene.act = function () {
+    // Load next scene
+    if (lastPress === KEY_ENTER) {
+    loadScene(gameScene);
+    lastPress = null;
+    }
+    };
     function canPlayOgg() {
         var aud = new Audio();
         if (aud.canPlayType('audio/ogg').replace(/no/, '')) {
@@ -440,137 +452,39 @@ lastPress = null;
             return false;
         }
     }
-    /* function paint(ctx) { // pinta el lienzo y el rectangulo
-    //     var i = 0,
-    //         l = 0;
-    //     // Clean canvas
-    //     ctx.fillStyle = '#000';//pinta el lienzo de negro
-    //     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    //     // Draw player
-    //     //ctx.fillStyle = '#0f0';
-    //     for (i = 0, l = body.length; i < l; i += 1) {
-    //         //body[i].fill(ctx);
-    //         ctx.drawImage(iBody, body[i].x, body[i].y);
-    //     }
-    //     // Draw food
-    //     //ctx.fillStyle = '#f00';
-    //     //food.fill(ctx);
-    //     //ctx.drawImage(iFood, food.x, food.y); cambiado por lo de abajo
-    //     food.drawImage(ctx, iFood);
-    //     // Debug last key pressed and square position
-    //     ctx.fillStyle = 'white';
-    //     //ctx.fillText('Last Press: ' + lastPress, 340, 20);
-    //     // Draw pause
-    //     if (pause) {
-    //         if (gameover) {
-    //             ctx.fillText('GAME OVER', canvas.width/2, canvas.height/2);
-    //         } else {
-    //             ctx.fillText('PAUSE', canvas.width/2, canvas.height/2);
-    //     }
-    //     }
-    //     // Draw score
-    //     ctx.fillText('Score: ' + score, 0, 10);
-    //     // Draw FPS
-    //     ctx.fillText('FPS: ' + FPS, 0, 20);
-    //     // Draw walls
-    //     ctx.fillStyle = '#999';
-    //     for (i = 0, l = wall.length; i < l; i += 1) {
-    //         wall[i].fill(ctx);
-    //     }
-    // }
-    // function act(){
-    //     var i = 0,
-    //         l = 0;
-    //     if (!pause){//si el juego NO está en pausa... que haga el act.
-    //         // GameOver Reset
-    //         if (gameover) {
-    //             reset();
-    //         }
-    //         // Move Body
-    //         for (i = body.length - 1; i > 0; i -= 1) {
-    //             body[i].x = body[i - 1].x;
-    //             body[i].y = body[i - 1].y;
-    //         }
-    //         // Change Direction
-    //         if (lastPress === KEY_UP && dir != 2) {
-    //             dir = 0;
-    //         }
-    //         if (lastPress === KEY_RIGHT && dir != 3) {
-    //             dir = 1;
-    //         }
-    //         if (lastPress === KEY_DOWN && dir != 0) {
-    //             dir = 2;
-    //         }
-    //         if (lastPress === KEY_LEFT && dir != 1) {
-    //             dir = 3;
-    //         }
-    //         // Move Head
-    //         if (dir === 0) {
-    //             body[0].y -= 10;
-    //         }
-    //         if (dir === 1) {
-    //             body[0].x += 10;
-    //         }
-    //         if (dir === 2) {
-    //             body[0].y += 10;
-    //         }
-    //         if (dir === 3) {
-    //             body[0].x -= 10;
-    //         }
-    //         // Out Screen
-    //         if (body[0].x > canvas.width - body[0].width) {
-    //             body[0].x = 0;
-    //         }
-    //         if (body[0].y > canvas.height - body[0].height) {
-    //             body[0].y = 0;
-    //         }
-    //         if (body[0].x < 0) {
-    //             body[0].x = canvas.width - body[0].width;
-    //         }
-    //         if (body[0].y < 0) {
-    //             body[0].y = canvas.height - body[0].height;
-    //         }
-    //         // Wall Intersects
-    //         for (i = 0, l = wall.length; i < l; i += 1) {
-    //             if (food.intersects(wall[i])) {
-    //                 food.x = random(canvas.width / 10 - 1) * 10;
-    //                 food.y = random(canvas.height / 10 - 1) * 10;
-    //             }
-    //             if (body[0].intersects(wall[i])) {
-    //                 gameover = true;
-    //                 pause = true;
-    //                 aDie.play();
-    //             }
-    //         }
-    //         // Body Intersects
-    //         for (i = 2, l = body.length; i < l; i += 1) {
-    //             if (body[0].intersects(body[i])) {
-    //                 gameover = true;
-    //                 pause = true;
-    //                 aDie.play();
-    //             }
-    //         }
-    //         // Food Intersects
-    //         if (body[0].intersects(food)) {
-    //             body.push(new Rectangle(food.x, food.y, 10, 10));
-    //             score += 1;
-    //             food.x = random(canvas.width / 10 - 1) * 10;
-    //             food.y = random(canvas.height / 10 - 1) * 10;
-    //             aEat.play();
-    //         }
-    //     }
-    //     // Pause/Unpause
-    //     if (lastPress === KEY_ENTER) {
-    //         pause = !pause;
-    //         lastPress = undefined;
-    //     }
-    // }
-
-    // setTimeout( function () {
-    //     window.requestAnimationFrame(run)
-    /     }, 75);
-    */
-
+    function funcionPrincipalParaConsumirAPI(url) {//función que retornará una promise
+        var promise = new Promise((resolve, reject) => {//declaración de promise
+            var request = new XMLHttpRequest();
+            request.open('GET', url, true);
+            request.onreadystatechange = function(event) {
+                if(request.readyState === 4) {
+                    if(request.status >= 200 && request.status < 400) {
+                        var response = request.responseText;
+                        var data = JSON.parse(response);
+                        resolve(data);
+                    }
+                    else {
+                        reject('Error trying to send the score');
+                    }
+                }
+            };
+            request.send();
+        });
+        return promise;
+    }
+    funcionPrincipalParaConsumirAPI('https://jsonplaceholder.typicode.com/?score=10')
+    .then(
+        (data) => {
+            data.results.forEach(localStorage => {
+                console.log(localStorage.highscores)
+            });
+        }
+    )
+    .catch(
+        (error) => {
+            console.log(error);
+        }
+    )
 /////////////////////////////////--ESCUCHAS--///////////////////////////////////////
 
     window.addEventListener('load', init, false);
